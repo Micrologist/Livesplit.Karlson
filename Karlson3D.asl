@@ -17,40 +17,61 @@ startup
 
 init
 {
+    vars.timerFound = false;
     var gamePtr = IntPtr.Zero;
-    var startPtr = IntPtr.Zero;
-    while (gamePtr == IntPtr.Zero || startPtr == IntPtr.Zero)
+    while (gamePtr == IntPtr.Zero)
     {
         foreach (var page in game.MemoryPages(true))
 		{
 			var scanner = new SignatureScanner(game, page.BaseAddress, (int)page.RegionSize);
 			if(gamePtr == IntPtr.Zero)
 				gamePtr = scanner.Scan(vars.gameTarget);
-			if(startPtr == IntPtr.Zero)
-                startPtr = scanner.Scan(vars.gameStartTarget);
-
-            if(gamePtr != IntPtr.Zero && startPtr != IntPtr.Zero)
+            if(gamePtr != IntPtr.Zero)
                 break;
 		}
             Thread.Sleep(250);
     }
     
-    print("pointers found");
-    vars.doStart = true;
-
-    var timerptr = new DeepPointer(startPtr+0x5B, 0x0, 0x20);
-    vars.timer = new MemoryWatcher<float>(timerptr);
+    print("game pointer found");
+    vars.doStart = false;
     var doneptr = new DeepPointer(gamePtr+0xD, 0x0, 0x19);
     vars.done = new MemoryWatcher<bool>(doneptr);
     var playingptr = new DeepPointer(gamePtr+0xD, 0x0, 0x18);
     vars.playing = new MemoryWatcher<bool>(playingptr);
 
-    vars.watchers = new MemoryWatcherList() { vars.timer, vars.playing, vars.done };
+    vars.watchers = new MemoryWatcherList() { vars.playing, vars.done };
 }
 
 update
 {
     vars.watchers.UpdateAll(game);
+
+    if(!vars.timerFound && vars.playing.Current)
+    {
+        var startPtr = IntPtr.Zero;
+        foreach (var page in game.MemoryPages(true))
+		{
+			var scanner = new SignatureScanner(game, page.BaseAddress, (int)page.RegionSize);
+			if(startPtr == IntPtr.Zero)
+                startPtr = scanner.Scan(vars.gameStartTarget);
+
+            if(startPtr != IntPtr.Zero)
+                break;
+		}
+
+        if(startPtr != IntPtr.Zero)
+        {
+            print("start pointer found");
+            var timerptr = new DeepPointer(startPtr+0x5b, 0x0, 0x20);
+            vars.timer = new MemoryWatcher<float>(timerptr);
+            vars.watchers = new MemoryWatcherList() { vars.playing, vars.done, vars.timer };
+            vars.timerFound = true;
+            vars.doStart = true;
+        }
+    }
+
+    if(!vars.timerFound)
+        return false;
 }
 
 start
