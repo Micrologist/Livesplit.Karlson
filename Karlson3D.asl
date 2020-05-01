@@ -1,0 +1,82 @@
+state("Karlson"){}
+
+startup
+{
+    vars.gameTarget = new SigScanTarget("48 83 EC 08 48 89 34 24 48 8B F1 48 B8 ?? ?? ?? ?? ?? ?? 00 00 48 89 30 C6 46 ?? 00 48 8B 34 24 48 83 C4 08 C3");
+    vars.gameStartTarget = new SigScanTarget("8B EC 48 83 EC 30 48 89 75 F8 48 8B F1 C6 46 18 01 C6 46 19 00 F3 0F 10 05 71 00 00 00 F3 0F 5A C0 F2 0F 5A C0 48 8D AD 00 00 00 00 49 BB ?? ?? ?? ?? ?? ?? 00 00 41 FF D3 48 B8 ?? ?? ?? ?? ?? ?? 00 00 48 8B 00 48 8B C8 83 38 00 49 BB ?? ?? ?? ?? ?? ?? 00 00 41 FF D3 48 B8 ?? ?? ?? ?? ?? ?? 00 00 48 8B 00 48 8B C8 83 39 00 C6 40 24 00 66 0F 57 C0 F2 0F 5A E8 F3 0F 11 68 20 48 8B 75 F8 48 8D 65 00 5D C3");
+    vars.previousTime = 0f;
+    vars.doStart = false;
+    vars.doReset = false;
+
+    Func<float, float> RoundTime = (time) => {
+        var f = Math.Round(time * 100)/100;
+        return (float)f;
+    };
+    vars.RoundTime = RoundTime;
+}
+
+init
+{
+    var gamePtr = IntPtr.Zero;
+    var startPtr = IntPtr.Zero;
+    while (gamePtr == IntPtr.Zero || startPtr == IntPtr.Zero)
+    {
+        foreach (var page in game.MemoryPages(true))
+		{
+			var scanner = new SignatureScanner(game, page.BaseAddress, (int)page.RegionSize);
+			if(gamePtr == IntPtr.Zero)
+				gamePtr = scanner.Scan(vars.gameTarget);
+			if(startPtr == IntPtr.Zero)
+                startPtr = scanner.Scan(vars.gameStartTarget);
+
+            if(gamePtr != IntPtr.Zero && startPtr != IntPtr.Zero)
+                break;
+		}
+            Thread.Sleep(250);
+    }
+    
+    print("pointers found");
+    vars.doStart = true;
+
+    var timerptr = new DeepPointer(startPtr+0x5B, 0x0, 0x20);
+    vars.timer = new MemoryWatcher<float>(timerptr);
+    var doneptr = new DeepPointer(gamePtr+0xD, 0x0, 0x19);
+    vars.done = new MemoryWatcher<bool>(doneptr);
+    var playingptr = new DeepPointer(gamePtr+0xD, 0x0, 0x18);
+    vars.playing = new MemoryWatcher<bool>(playingptr);
+
+    vars.watchers = new MemoryWatcherList() { vars.timer, vars.playing, vars.done };
+}
+
+update
+{
+    vars.watchers.UpdateAll(game);
+}
+
+start
+{
+    vars.previousTime = 0f;
+    if((vars.playing.Current && !vars.playing.Old) || vars.doStart)
+    {
+        vars.doStart = false;
+        return true;
+    }
+}
+
+split
+{
+    if(vars.timer.Current < vars.timer.Old)
+        vars.previousTime += vars.RoundTime(vars.timer.Old);
+
+    if(vars.done.Current && !vars.done.Old)
+    {
+        return true;
+    }
+}
+
+isLoading { return true; }
+
+gameTime
+{  
+    return TimeSpan.FromSeconds(vars.RoundTime(vars.timer.Current) + vars.previousTime);
+}
