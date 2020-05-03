@@ -13,6 +13,7 @@ startup
         return (float)f;
     };
     vars.RoundTime = RoundTime;
+    vars.ignoreTimer = true;
 }
 
 init
@@ -41,6 +42,8 @@ init
 
     vars.watchers = new MemoryWatcherList() { vars.playing, vars.done };
 }
+
+
 
 update
 {
@@ -77,7 +80,9 @@ update
 start
 {
     vars.previousTime = 0f;
-    if((vars.playing.Current && !vars.playing.Old) || vars.doStart)
+    vars.ignoreTimer = true;
+
+    if((vars.playing.Current && !vars.playing.Old) || vars.doStart || (vars.timer.Current < vars.timer.Old))
     {
         vars.doStart = false;
         return true;
@@ -86,9 +91,10 @@ start
 
 split
 {
-    if(vars.timer.Current < vars.timer.Old)
+    if((vars.timer.Current < vars.timer.Old) && !vars.ignoreTimer)
         vars.previousTime += vars.RoundTime(vars.timer.Old);
 
+    vars.ignoreTimer = false;
     if(vars.done.Current && !vars.done.Old)
     {
         return true;
