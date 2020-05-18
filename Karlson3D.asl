@@ -6,7 +6,7 @@ startup
     vars.gameStartTarget = new SigScanTarget("8B EC 48 83 EC 30 48 89 75 F8 48 8B F1 C6 46 18 01 C6 46 19 00 F3 0F 10 05 71 00 00 00 F3 0F 5A C0 F2 0F 5A C0 48 8D AD 00 00 00 00 49 BB ?? ?? ?? ?? ?? ?? 00 00 41 FF D3 48 B8 ?? ?? ?? ?? ?? ?? 00 00 48 8B 00 48 8B C8 83 38 00 49 BB ?? ?? ?? ?? ?? ?? 00 00 41 FF D3 48 B8 ?? ?? ?? ?? ?? ?? 00 00 48 8B 00 48 8B C8 83 39 00 C6 40 24 00 66 0F 57 C0 F2 0F 5A E8 F3 0F 11 68 20 48 8B 75 F8 48 8D 65 00 5D C3");
     vars.previousTime = 0f;
     vars.doStart = false;
-    vars.doReset = false;
+    vars.inTutorial = true;
 
     Func<float, float> RoundTime = (time) => {
         var f = Math.Round(time * 100)/100;
@@ -85,8 +85,15 @@ start
     if((vars.playing.Current && !vars.playing.Old) || vars.doStart || (vars.timer.Current < vars.timer.Old))
     {
         vars.doStart = false;
+        vars.inTutorial = true;
         return true;
     }
+}
+
+reset
+{
+    if (vars.inTutorial && (vars.timer.Current < vars.timer.Old))
+        return true;
 }
 
 split
@@ -97,9 +104,11 @@ split
     vars.ignoreTimer = false;
     if(vars.done.Current && !vars.done.Old)
     {
+        vars.inTutorial = false;
         return true;
     }
 }
+
 
 isLoading { return true; }
 
