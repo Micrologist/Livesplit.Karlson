@@ -98,7 +98,7 @@ reset
 
 split
 {
-    if((vars.timer.Current < vars.timer.Old) && !vars.ignoreTimer)
+    if((vars.timer.Current < vars.timer.Old) && !vars.ignoreTimer && !vars.inTutorial)
         vars.previousTime += vars.RoundTime(vars.timer.Old);
 
     vars.ignoreTimer = false;
