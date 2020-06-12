@@ -14,23 +14,59 @@ startup
     };
     vars.RoundTime = RoundTime;
     vars.ignoreTimer = true;
+    vars.initCooldown = new Stopwatch();
+
+    if (timer.CurrentTimingMethod == TimingMethod.RealTime) {        
+    	var timingMessage = MessageBox.Show (
+       		"This game uses Game Time (IGT) as the main timing method.\n"+
+    		"LiveSplit is currently set to show Real Time (RTA).\n"+
+    		"Would you like to set the timing method to IGT?",
+       		 "Karlson 3D | LiveSplit",
+       		MessageBoxButtons.YesNo,MessageBoxIcon.Question
+       	);
+		
+        if (timingMessage == DialogResult.Yes) {
+		timer.CurrentTimingMethod = TimingMethod.GameTime;
+        }
+	}
 }
 
 init
 {
     vars.timerFound = false;
     var gamePtr = IntPtr.Zero;
-    while (gamePtr == IntPtr.Zero)
+    
+    if(!vars.initCooldown.IsRunning)
+    {
+        vars.initCooldown.Start();
+    }
+
+    var timeSinceLastInit = vars.initCooldown.Elapsed.TotalMilliseconds;
+
+    if(timeSinceLastInit >= 1000)
     {
         foreach (var page in game.MemoryPages(true))
-		{
-			var scanner = new SignatureScanner(game, page.BaseAddress, (int)page.RegionSize);
-			if(gamePtr == IntPtr.Zero)
-				gamePtr = scanner.Scan(vars.gameTarget);
+        {
+            var scanner = new SignatureScanner(game, page.BaseAddress, (int)page.RegionSize);
+            if(gamePtr == IntPtr.Zero)
+                gamePtr = scanner.Scan(vars.gameTarget);
             if(gamePtr != IntPtr.Zero)
-                break;
-		}
-            Thread.Sleep(250);
+            break;
+        }
+
+        if(gamePtr == IntPtr.Zero)
+        {
+            vars.initCooldown.Restart();
+            throw new Exception("game pointer not found - resetting");
+        }
+        else
+        {
+            vars.initCooldown.Reset();
+        }
+    }
+    else
+    {
+        throw new Exception("init not ready");
     }
     
     print("game pointer found");
