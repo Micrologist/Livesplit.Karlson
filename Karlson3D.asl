@@ -111,6 +111,12 @@ update
 
     if(!vars.timerFound)
         return false;
+
+
+    if((vars.timer.Current < vars.timer.Old) && !vars.ignoreTimer)
+    {
+        vars.previousTime += vars.RoundTime(vars.timer.Old);
+    }
 }
 
 start
@@ -134,9 +140,6 @@ reset
 
 split
 {
-    if((vars.timer.Current < vars.timer.Old) && !vars.ignoreTimer)
-        vars.previousTime += vars.RoundTime(vars.timer.Old);
-
     vars.ignoreTimer = false;
     if(vars.done.Current && !vars.done.Old)
     {
