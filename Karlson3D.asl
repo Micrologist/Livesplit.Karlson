@@ -1,12 +1,16 @@
-state("Karlson"){}
+state("Karlson"){
+    string250 levelName : "UnityPlayer.dll",0x01683318, 0x48, 0x10, 0x0;
+    string250 levelAddress : "UnityPlayer.dll",0x01683318, 0x48, 0x10;
+}
 
 startup
 {
     vars.gameTarget = new SigScanTarget("48 83 EC 08 48 89 34 24 48 8B F1 48 B8 ?? ?? ?? ?? ?? ?? 00 00 48 89 30 C6 46 ?? 00 48 8B 34 24 48 83 C4 08 C3");
     vars.gameStartTarget = new SigScanTarget("8B EC 48 83 EC 30 48 89 75 F8 48 8B F1 C6 46 18 01 C6 46 19 00 F3 0F 10 05 71 00 00 00 F3 0F 5A C0 F2 0F 5A C0 48 8D AD 00 00 00 00 49 BB ?? ?? ?? ?? ?? ?? 00 00 41 FF D3 48 B8 ?? ?? ?? ?? ?? ?? 00 00 48 8B 00 48 8B C8 83 38 00 49 BB ?? ?? ?? ?? ?? ?? 00 00 41 FF D3 48 B8 ?? ?? ?? ?? ?? ?? 00 00 48 8B 00 48 8B C8 83 39 00 C6 40 24 00 66 0F 57 C0 F2 0F 5A E8 F3 0F 11 68 20 48 8B 75 F8 48 8D 65 00 5D C3");
     vars.previousTime = 0f;
-    vars.doStart = false;
-    vars.inTutorial = true;
+    vars.restarted = false;
+    vars.startNow = false;
+    vars.timerModel = new TimerModel { CurrentState = timer }; 
 
     Func<float, float> RoundTime = (time) => {
         var f = Math.Round(time * 100)/100;
@@ -29,6 +33,21 @@ startup
 		timer.CurrentTimingMethod = TimingMethod.GameTime;
         }
 	}
+    vars.SetTextComponent = (Action<string, string>)((id, text) =>
+	{
+        var textSettings = timer.Layout.Components.Where(x => x.GetType().Name == "TextComponent").Select(x => x.GetType().GetProperty("Settings").GetValue(x, null));
+        var textSetting = textSettings.FirstOrDefault(x => (x.GetType().GetProperty("Text1").GetValue(x, null) as string) == id);
+        if (textSetting == null)
+        {
+            var textComponentAssembly = Assembly.LoadFrom("Components\\LiveSplit.Text.dll");
+            var textComponent = Activator.CreateInstance(textComponentAssembly.GetType("LiveSplit.UI.Components.TextComponent"), timer);
+            timer.Layout.LayoutComponents.Add(new LiveSplit.UI.Components.LayoutComponent("LiveSplit.Text.dll", textComponent as LiveSplit.UI.Components.IComponent));
+            textSetting = textComponent.GetType().GetProperty("Settings", BindingFlags.Instance | BindingFlags.Public).GetValue(textComponent, null);
+            textSetting.GetType().GetProperty("Text1").SetValue(textSetting, id);
+        }
+        if (textSetting != null)
+            textSetting.GetType().GetProperty("Text2").SetValue(textSetting, text);
+	});
 }
 
 init
@@ -117,6 +136,20 @@ update
     {
         vars.previousTime += vars.RoundTime(vars.timer.Old);
     }
+
+    if(current.levelAddress != old.levelAddress)
+    {
+        vars.restarted = true;
+    }
+    
+    if(vars.restarted && current.levelName == "Assets/Scenes/Stages/Escape/0Tutorial.unity" && settings.ResetEnabled)
+    {
+        vars.timerModel.Reset();
+        vars.startNow = true;
+        vars.restarted = false;
+    }
+    print("startNow: " + vars.startNow.ToString());
+    print("restarted: " + vars.restarted.ToString());
 }
 
 start
@@ -124,18 +157,11 @@ start
     vars.previousTime = 0f;
     vars.ignoreTimer = true;
 
-    if((vars.playing.Current && !vars.playing.Old) || vars.doStart || (vars.timer.Current < vars.timer.Old))
+    if((current.levelName == "Assets/Scenes/Stages/Escape/0Tutorial.unity" && current.levelAddress != old.levelAddress) || (vars.startNow))
     {
-        vars.doStart = false;
-        vars.inTutorial = true;
+        vars.startNow = false;
         return true;
     }
-}
-
-reset
-{
-    if (vars.inTutorial && (vars.timer.Current < vars.timer.Old))
-        return true;
 }
 
 split
@@ -143,7 +169,6 @@ split
     vars.ignoreTimer = false;
     if(vars.done.Current && !vars.done.Old)
     {
-        vars.inTutorial = false;
         return true;
     }
 }
