@@ -95,3 +95,13 @@ isLoading
 {
 	return true;
 }
+
+exit
+{
+	vars.unity.Reset();
+}
+
+shutdown
+{
+	vars.unity.Reset();
+}
