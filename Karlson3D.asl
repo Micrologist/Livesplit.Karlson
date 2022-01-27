@@ -3,10 +3,7 @@ state("Karlson"){}
 startup
 {
 	vars.totalTime = 0d;
-	vars.doStart = false;
 	vars.inTutorial = true;
-
-	vars.ignoreTimer = true;
 
 	using (var prov = new Microsoft.CSharp.CSharpCodeProvider())
 	{
@@ -35,7 +32,6 @@ startup
 onStart
 {
 	vars.totalTime = 0d;
-	vars.ignoreTimer = true;
 	vars.inTutorial = true;
 }
 
