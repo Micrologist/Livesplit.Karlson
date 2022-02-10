@@ -5,7 +5,7 @@ startup
 	vars.totalTime = 0d;
 	vars.inTutorial = true;
 
-	vars.unity = Activator.CreateInstance(Assembly.LoadFrom(@"Components\ULibrary.dll").GetType("ULibrary.Unity"));
+	vars.unity = Assembly.Load(File.ReadAllBytes(@"Components\ULibrary.dll")).CreateInstance("ULibrary.Unity");
 
 	if (timer.CurrentTimingMethod == TimingMethod.RealTime)
 	{
