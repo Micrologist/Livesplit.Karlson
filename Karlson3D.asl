@@ -1,4 +1,4 @@
-state("Karlson"){}
+state("Karlson") {}
 
 startup
 {
@@ -50,11 +50,11 @@ update
 {
 	if (!vars.unity.Loaded) return false;
 
-	vars.unity.Watchers.UpdateAll(game);
+	vars.unity.Update();
 
-	current.playing = vars.unity.Watchers["playing"].Current;
-	current.done = vars.unity.Watchers["done"].Current;
-	current.timer = vars.unity.Watchers["timer"].Current;
+	current.playing = vars.unity["playing"].Current;
+	current.done = vars.unity["done"].Current;
+	current.timer = vars.unity["timer"].Current;
 }
 
 start
