@@ -5,7 +5,7 @@ startup
 	vars.totalTime = 0d;
 	vars.inTutorial = true;
 
-	vars.unity = Assembly.Load(File.ReadAllBytes(@"Components\UnityASL.bin")).CreateInstance("ULibrary.Unity");
+	vars.unity = Assembly.Load(File.ReadAllBytes(@"Components\ULibrary.bin")).CreateInstance("ULibrary.Unity");
 
 	if (timer.CurrentTimingMethod == TimingMethod.RealTime)
 	{
